@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: book-lending
+  datasource:
+    url: jdbc:postgresql://localhost:5432/library
+    username: library
+    password: library
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+library:
+  loan:
+    max-active-loans: 3
+    loan-duration-days: 14
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
