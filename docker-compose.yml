@@ -10,6 +10,24 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-library} -d ${DB_NAME:-library}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    container_name: library-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-library}
+      DB_USERNAME: ${DB_USERNAME:-library}
+      DB_PASSWORD: ${DB_PASSWORD:-library}
+    ports:
+      - "8080:8080"
 
 volumes:
   pgdata:
