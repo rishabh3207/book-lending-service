@@ -47,4 +47,4 @@ management:
 
 logging:
   pattern:
-    level: "%5p [%X{requestId:-}]"
+    level: "%5p [%X{requestId:-} %X{user:-}]"

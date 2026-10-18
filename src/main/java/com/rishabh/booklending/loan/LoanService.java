@@ -85,10 +85,17 @@ public class LoanService {
     @Transactional 
     public Loan returnLoan(Long loanId) {
         Loan loan = get(loanId);
-        loan.markReturned(clock.instant());
+        Instant now = clock.instant();
+        boolean late = loan.isOverdue(now);
+        loan.markReturned(now);
         loan.getBook().returnCopy();
         returnedCounter.increment();
-        log.info("Loan {} returned: member={} book={}", loanId, loan.getMember().getId(), loan.getBook().getId());
+        if (late) {
+            log.info("Loan {} returned late: member={} book={} daysLate={}", loanId, loan.getMember().getId(),
+                    loan.getBook().getId(), Duration.between(loan.getDueDate(), now).toDays());
+        } else {
+            log.info("Loan {} returned: member={} book={}", loanId, loan.getMember().getId(), loan.getBook().getId());
+        }
         return loan;
     }
 

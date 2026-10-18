@@ -1,5 +1,6 @@
 package com.rishabh.booklending.config;
 
+import com.rishabh.booklending.common.UserMdcFilter;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
@@ -45,7 +47,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/loans/**").authenticated()
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(unauthenticated).accessDeniedHandler(denied))
-            .httpBasic(basic -> basic.authenticationEntryPoint(unauthenticated));
+            .httpBasic(basic -> basic.authenticationEntryPoint(unauthenticated))
+            .addFilterAfter(new UserMdcFilter(), BasicAuthenticationFilter.class);
         return http.build();
     }
 

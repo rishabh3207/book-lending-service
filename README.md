@@ -84,7 +84,9 @@ PostgreSQL with Flyway migrations in `src/main/resources/db/migration`. Demo dat
 
 - `/actuator/health` and `/actuator/info` (public)
 - `/actuator/metrics` (librarian): `library.loans.borrowed`, `.returned`, `.rejected`, `.active`, `.overdue`
-- Every request gets an `X-Request-Id`, included in log lines and the response header
+- One access log line per request: method, path, status and duration
+- Every log line carries the request id and the logged-in user (`INFO [<request-id> <user>]`); the
+  id is also returned in the `X-Request-Id` response header
 
 ## Tests
 

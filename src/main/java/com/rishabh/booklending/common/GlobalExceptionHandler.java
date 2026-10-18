@@ -42,8 +42,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     // Only our own exceptions map to 4xx. A JDK IllegalStateException means a broken
     // invariant (a bug), so it falls through to the 500 handler instead of leaking its message.
-    @ExceptionHandler({ConflictException.class, LoanAlreadyReturnedException.class})
-    ProblemDetail handleConflict(RuntimeException ex) {
+    @ExceptionHandler(ConflictException.class)
+    ProblemDetail handleConflict(ConflictException ex) {
+        return problem(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
+    }
+
+    @ExceptionHandler(LoanAlreadyReturnedException.class)
+    ProblemDetail handleAlreadyReturned(LoanAlreadyReturnedException ex) {
+        log.info("Return rejected: {}", ex.getMessage());
         return problem(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
     }
 
