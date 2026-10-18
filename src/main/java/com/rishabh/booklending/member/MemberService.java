@@ -32,6 +32,13 @@ public class MemberService {
         return members.findById(id).orElseThrow(() -> new NotFoundException("Member", id));
     }
 
+    // The login username is the member's email, so this is how members find their own record and id.
+    @Transactional(readOnly = true)
+    public Member getByLogin(String username) {
+        return members.findByEmail(Member.normalizeEmail(username))
+                .orElseThrow(() -> new NotFoundException("No member record for user " + username));
+    }
+
     @Transactional(readOnly = true)
     public Page<Member> list(Pageable pageable) {
         return members.findAll(pageable);

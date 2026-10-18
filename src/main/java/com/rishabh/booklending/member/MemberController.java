@@ -9,6 +9,7 @@ import java.net.URI;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +23,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
 
-@Tag(name = "Members", description = "Manage library members (librarians only)")
+@Tag(name = "Members", description = "Manage library members (librarians only, except /me)")
 @RestController
 @RequestMapping("/api/members")
 public class MemberController {
@@ -30,6 +31,16 @@ public class MemberController {
 
     public MemberController(MemberService memberService) {
         this.memberService = memberService;
+    }
+
+    @Operation(summary = "Get my member record",
+            description = "Any logged-in user. Returns the member whose email is the login username, "
+                    + "so a member can find their own id before borrowing.")
+    @ApiResponse(responseCode = "200", description = "The caller's member record")
+    @ApiResponse(responseCode = "404", description = "The login has no member record (e.g. librarian)")
+    @GetMapping("/me")
+    public MemberResponse me(Authentication authentication) {
+        return MemberResponse.from(memberService.getByLogin(authentication.getName()));
     }
 
     @Operation(summary = "Get a member by id")

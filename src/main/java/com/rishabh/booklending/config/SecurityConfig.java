@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").hasRole("LIBRARIAN")
                 .requestMatchers(HttpMethod.GET, "/api/books/**").authenticated()
                 .requestMatchers("/api/books/**").hasRole("LIBRARIAN")
-                .requestMatchers(HttpMethod.GET, "/api/members/*/loans").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/members/me", "/api/members/*/loans").authenticated()
                 .requestMatchers("/api/members/**").hasRole("LIBRARIAN")
                 .requestMatchers("/api/loans/**").authenticated()
                 .anyRequest().authenticated())

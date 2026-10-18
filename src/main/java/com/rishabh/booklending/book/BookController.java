@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
@@ -42,10 +44,18 @@ public class BookController {
         return BookResponse.from(bookService.get(id));
     }
 
-    @Operation(summary = "List books", description = "Paginated; available to any logged-in user.")
+    @Operation(summary = "List or search books",
+            description = "Paginated; available to any logged-in user. Filters are optional and combine with AND: "
+                    + "title and author match partially and ignore case, isbn must match exactly.")
+    @ApiResponse(responseCode = "200", description = "Page of matching books (empty if none match)")
+    @ApiResponse(responseCode = "400", description = "Unknown sort property")
     @GetMapping
-    public PagedModel<BookResponse> list(@ParameterObject Pageable pageable) {
-        return new PagedModel<>(bookService.list(pageable).map(BookResponse::from));
+    public PagedModel<BookResponse> list(
+            @Parameter(description = "Part of the title, case-insensitive") @RequestParam(required = false) String title,
+            @Parameter(description = "Part of the author name, case-insensitive") @RequestParam(required = false) String author,
+            @Parameter(description = "Exact ISBN") @RequestParam(required = false) String isbn,
+            @ParameterObject Pageable pageable) {
+        return new PagedModel<>(bookService.list(title, author, isbn, pageable).map(BookResponse::from));
     }
 
     @Operation(summary = "Add a book",

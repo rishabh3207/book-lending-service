@@ -33,8 +33,8 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Book> list(Pageable pageable) {
-        return books.findAll(pageable);
+    public Page<Book> list(String title, String author, String isbn, Pageable pageable) {
+        return books.findAll(BookSpecifications.matching(title, author, isbn), pageable);
     }
 
     @Transactional

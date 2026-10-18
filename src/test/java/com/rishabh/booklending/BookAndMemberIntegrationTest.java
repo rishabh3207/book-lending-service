@@ -37,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 class BookAndMemberIntegrationTest {
 
     private static final RequestPostProcessor LIBRARIAN = httpBasic("librarian", "librarian123");
+    private static final RequestPostProcessor RISHABH = httpBasic("rishabh@gmail.com", "password123");
 
     @Autowired MockMvc mvc;
     @Autowired MemberRepository members;
@@ -158,6 +159,79 @@ class BookAndMemberIntegrationTest {
 
         mvc.perform(delete("/api/books/{id}", twoCopies.getId()).with(LIBRARIAN))
                 .andExpect(status().isConflict());
+    }
+
+    // --- books: search ---
+
+    private ResultActions search(String param, String value) throws Exception {
+        return mvc.perform(get("/api/books").param(param, value).with(RISHABH)).andExpect(status().isOk());
+    }
+
+    @Test
+    void searchByTitleIsPartialAndIgnoresCase() throws Exception {
+        search("title", "rEfAcT")
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Refactoring"));
+    }
+
+    @Test
+    void searchByAuthorIsPartialAndIgnoresCase() throws Exception {
+        search("author", "kleppmann")
+                .andExpect(jsonPath("$.page.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].isbn").value("9781449373320"));
+    }
+
+    @Test
+    void searchByIsbnIsExact() throws Exception {
+        search("isbn", twoCopies.getIsbn()).andExpect(jsonPath("$.page.totalElements").value(1));
+        search("isbn", "978013475").andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+
+    @Test
+    void filtersCombineWithAnd() throws Exception {
+        mvc.perform(get("/api/books").param("title", "refactoring").param("author", "rowling").with(RISHABH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+
+    @Test
+    void likeWildcardsInSearchTermsAreMatchedLiterally() throws Exception {
+        search("title", "%").andExpect(jsonPath("$.page.totalElements").value(0));
+        search("title", "_").andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+
+    @Test
+    void blankFilterIsIgnored() throws Exception {
+        long all = books.count();
+        search("title", "   ").andExpect(jsonPath("$.page.totalElements").value(all));
+    }
+
+    // --- members: me ---
+
+    @Test
+    void memberCanLookUpTheirOwnRecord() throws Exception {
+        mvc.perform(get("/api/members/me").with(RISHABH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(rishabh.getId()))
+                .andExpect(jsonPath("$.email").value("rishabh@gmail.com"));
+    }
+
+    @Test
+    void librarianHasNoMemberRecord() throws Exception {
+        mvc.perform(get("/api/members/me").with(LIBRARIAN))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void meRequiresLogin() throws Exception {
+        mvc.perform(get("/api/members/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void membersStillCannotReadOtherMembersById() throws Exception {
+        mvc.perform(get("/api/members/{id}", rishabh.getId()).with(RISHABH))
+                .andExpect(status().isForbidden());
     }
 
     // --- members ---

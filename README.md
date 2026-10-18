@@ -37,7 +37,8 @@ If an older local database fails Flyway validation, reset it with `docker compos
 | rishabh@gmail.com | password123 | MEMBER (id 1) |
 | shivamgarg@gmail.com | password123 | MEMBER (id 2) |
 
-HTTP Basic auth; users are defined (BCrypt-hashed) in `application.yml`.
+HTTP Basic auth; users are defined (BCrypt-hashed) in `application.yml`. A member's login is
+their email; `GET /api/members/me` returns their member record (and id).
 
 ## Lending rules
 
@@ -55,8 +56,10 @@ A member with any overdue loan can't borrow. Rejected borrows return `409` with 
 
 | Method | Path | Access |
 |---|---|---|
-| GET | /api/books, /api/books/{id} | any user |
+| GET | /api/books?title=&author=&isbn= | any user (filters optional) |
+| GET | /api/books/{id} | any user |
 | POST, PUT, DELETE | /api/books/** | librarian |
+| GET | /api/members/me | any user (own record) |
 | GET, POST, PUT, DELETE | /api/members/** | librarian |
 | POST | /api/loans | librarian, or a member for themselves |
 | GET | /api/loans?status=ACTIVE\|OVERDUE\|RETURNED | librarian |
@@ -64,6 +67,7 @@ A member with any overdue loan can't borrow. Rejected borrows return `409` with 
 | POST | /api/loans/{id}/return | librarian, or the loan's member |
 | GET | /api/members/{id}/loans | librarian, or that member |
 
+Book search: `title` and `author` match partially and ignore case, `isbn` is exact; filters combine.
 Full documentation in Swagger UI. Errors use RFC 7807 Problem Details.
 
 ```bash
