@@ -21,7 +21,7 @@ public class MemberService {
 
     @Transactional 
     public Member create(MemberRequest request) {
-        if(members.existsByEmail(request.email())) {
+        if(members.existsByEmail(Member.normalizeEmail(request.email()))) {
             throw new ConflictException("Member with this email already exists.");
         }
         return members.save(new Member(request.name(), request.email()));
@@ -40,9 +40,9 @@ public class MemberService {
     @Transactional 
     public Member update(Long id, MemberRequest request) {
         Member member = get(id);
-        String email = request.email().trim().toLowerCase();
+        String email = Member.normalizeEmail(request.email());
 
-        if (!email.equalsIgnoreCase(member.getEmail()) && members.existsByEmail(email)) {
+        if (!email.equals(member.getEmail()) && members.existsByEmail(email)) {
             throw new ConflictException("Email " + email + " is already used by another member.");
         }
         member.updateDetails(request.name(), email); 

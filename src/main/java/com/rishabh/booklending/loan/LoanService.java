@@ -84,15 +84,29 @@ public class LoanService {
 
     @Transactional 
     public Loan returnLoan(Long loanId) {
-        Loan loan = loans.findById(loanId).orElseThrow(() -> new NotFoundException("Loan", loanId));
-        if(loan.getReturnedAt() != null) {
-            throw new LoanAlreadyReturnedException(loanId);
-        }
+        Loan loan = get(loanId);
         loan.markReturned(clock.instant());
         loan.getBook().returnCopy();
         returnedCounter.increment();
         log.info("Loan {} returned: member={} book={}", loanId, loan.getMember().getId(), loan.getBook().getId());
         return loan;
+    }
+
+    @Transactional(readOnly = true)
+    public Loan get(Long loanId) {
+        return loans.findById(loanId).orElseThrow(() -> new NotFoundException("Loan", loanId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Loan> list(LoanStatus status, Pageable pageable) {
+        if (status == null) {
+            return loans.findAll(pageable);
+        }
+        return switch (status) {
+            case ACTIVE -> loans.findByReturnedAtIsNull(pageable);
+            case OVERDUE -> loans.findByReturnedAtIsNullAndDueDateBefore(clock.instant(), pageable);
+            case RETURNED -> loans.findByReturnedAtIsNotNull(pageable);
+        };
     }
 
     @Transactional(readOnly = true)

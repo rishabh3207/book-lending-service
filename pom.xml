@@ -11,21 +11,8 @@
 	<groupId>com.rishabh</groupId>
 	<artifactId>book-lending</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<name>book-lending</name>
+	<description>Book lending microservice: catalogue, members and loans with configurable lending rules</description>
 	<properties>
 		<java.version>25</java.version>
 	</properties>
@@ -121,6 +108,18 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<!-- version and build time on /actuator/info -->
+							<goal>build-info</goal>
+						</goals>
+						<configuration>
+							<!-- the parent pins a fixed timestamp for reproducible jars; show the real build time -->
+							<time>${maven.build.timestamp}</time>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

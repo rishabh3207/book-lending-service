@@ -5,12 +5,18 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/library}
     username: ${DB_USERNAME:library}
     password: ${DB_PASSWORD:library}
+  data:
+    web:
+      pageable:
+        max-page-size: 100
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
   flyway:
     enabled: true
+    # Demo data lives in db/seed. Production sets FLYWAY_LOCATIONS=classpath:db/migration.
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration,classpath:db/seed}
 
 library:
   loan:

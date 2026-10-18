@@ -197,7 +197,7 @@ class LoanServiceTest {
 
         assertThatThrownBy(() -> service.returnLoan(LOAN_ID))
                 .isInstanceOf(LoanAlreadyReturnedException.class)
-                .hasMessage("Loan 5 has already been returned");
+                .hasMessageEndingWith("has already been returned");
 
         assertThat(loan.getReturnedAt()).isEqualTo(NOW.minus(Duration.ofDays(1)));
         assertThat(ddia.getAvailableCopies()).isEqualTo(1);

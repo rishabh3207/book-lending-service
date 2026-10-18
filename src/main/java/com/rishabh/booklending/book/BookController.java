@@ -65,10 +65,11 @@ public class BookController {
             description = "Librarians only. Title, author and total copies can change; the ISBN cannot. "
                     + "Total copies cannot drop below the number currently on loan.")
     @ApiResponse(responseCode = "200", description = "Book updated")
-    @ApiResponse(responseCode = "400", description = "Validation failed, or total copies below copies on loan")
+    @ApiResponse(responseCode = "400", description = "Validation failed; see 'errors' in the body")
     @ApiResponse(responseCode = "403", description = "Only librarians can update books")
     @ApiResponse(responseCode = "404", description = "Book not found")
-    @ApiResponse(responseCode = "409", description = "ISBN changed, or the book was updated concurrently")
+    @ApiResponse(responseCode = "409",
+            description = "ISBN changed, total copies below copies on loan, or the book was updated concurrently")
     @PutMapping("/{id}")
     public BookResponse update(@PathVariable Long id, @Valid @RequestBody BookRequest req) {
         return BookResponse.from(bookService.update(id, req));

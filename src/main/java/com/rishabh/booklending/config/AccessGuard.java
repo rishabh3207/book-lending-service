@@ -1,6 +1,7 @@
 package com.rishabh.booklending.config;
 
 import com.rishabh.booklending.loan.LoanRepository;
+import com.rishabh.booklending.member.Member;
 import com.rishabh.booklending.member.MemberRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -17,12 +18,10 @@ public class AccessGuard {
     }
 
     public boolean isMember(Authentication auth, Long memberId) {
-        return members.findById(memberId)
-                .map(m -> m.getEmail().equalsIgnoreCase(auth.getName()))
-                .orElse(false);
+        return members.existsByIdAndEmail(memberId, Member.normalizeEmail(auth.getName()));
     }
 
     public boolean ownsLoan(Authentication auth, Long loanId) {
-        return loans.existsByIdAndMemberEmail(loanId, auth.getName());
+        return loans.existsByIdAndMemberEmail(loanId, Member.normalizeEmail(auth.getName()));
     }
 }

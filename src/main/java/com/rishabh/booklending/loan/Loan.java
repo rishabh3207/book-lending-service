@@ -57,7 +57,7 @@ public class Loan {
 
     public void markReturned(Instant now) {
         if (this.returnedAt != null) {
-            throw new IllegalStateException("The loan with ID " + id + " has already been returned.");
+            throw new LoanAlreadyReturnedException(id);
         }
         this.returnedAt = now;
     }

@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.Locale;
 
 @Entity
 @Table(name = "member")
@@ -17,7 +18,8 @@ public class Member {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    // Unique case-insensitively via ux_member_email_lower (V3)
+    @Column(nullable = false)
     private String email;
 
     @CreationTimestamp
@@ -34,12 +36,16 @@ public class Member {
 
     public Member(String name, String email) {
         this.name = name;
-        this.email = email;
+        this.email = normalizeEmail(email);
     }
 
     public void updateDetails(String name, String email) {
         this.name = name;
-        this.email = email;
+        this.email = normalizeEmail(email);
+    }
+
+    public static String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     public Long getId() { return id; }

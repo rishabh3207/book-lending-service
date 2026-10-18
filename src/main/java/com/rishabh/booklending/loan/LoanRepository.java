@@ -24,5 +24,24 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     @EntityGraph(attributePaths = "book")
     Page<Loan> findByMemberId(Long memberId, Pageable pageable);
+
     boolean existsByIdAndMemberEmail(Long id, String email);
+
+    // Librarian views. The entity graph fetches book and member in the same query (no N+1).
+    @Override
+    @EntityGraph(attributePaths = {"book", "member"})
+    Page<Loan> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"book", "member"})
+    Page<Loan> findByReturnedAtIsNull(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"book", "member"})
+    Page<Loan> findByReturnedAtIsNullAndDueDateBefore(Instant now, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"book", "member"})
+    Page<Loan> findByReturnedAtIsNotNull(Pageable pageable);
+
+    long countByReturnedAtIsNull();
+
+    long countByReturnedAtIsNullAndDueDateBefore(Instant now);
 }

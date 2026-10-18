@@ -1,5 +1,6 @@
 package com.rishabh.booklending.book;
 
+import com.rishabh.booklending.common.ConflictException;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -68,7 +69,7 @@ public class Book {
     public void updateDetails(String title, String author, int newTotalCopies) {
         int onLoan = totalCopies - availableCopies;
         if (newTotalCopies < onLoan) {
-            throw new IllegalArgumentException(
+            throw new ConflictException(
                 "Cannot reduce total copies below " + onLoan + " (currently on loan)");
         }
         this.title = title;

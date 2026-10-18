@@ -6,6 +6,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -83,9 +86,12 @@ class LoanFlowIntegrationTest {
     // --- authentication & authorization ---
 
     @Test
-    void requestsWithoutCredentialsGet401() throws Exception {
+    void requestsWithoutCredentialsGet401AsProblemDetails() throws Exception {
         mvc.perform(get("/api/books"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", startsWith("Basic")))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Unauthorized"));
     }
 
     @Test
@@ -101,7 +107,9 @@ class LoanFlowIntegrationTest {
                         .content("""
                                  {"title":"X","author":"Y","isbn":"9780000000001","totalCopies":1}
                                  """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Forbidden"));
     }
 
     @Test
@@ -171,7 +179,23 @@ class LoanFlowIntegrationTest {
         long loanId = JsonPath.parse(response.getContentAsString()).read("$.id", Long.class);
 
         assertThat(response.getHeader("Location")).isEqualTo("/api/loans/" + loanId);
-        assertThat(loans.findById(loanId)).isPresent();
+        mvc.perform(get(response.getHeader("Location")).with(RISHABH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(loanId))
+                .andExpect(jsonPath("$.overdue").value(false));
+    }
+
+    @Test
+    void memberCannotReadSomeoneElsesLoan() throws Exception {
+        String body = borrow(LIBRARIAN, shivam, singleCopy)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long loanId = JsonPath.parse(body).read("$.id", Long.class);
+
+        mvc.perform(get("/api/loans/{id}", loanId).with(RISHABH))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/loans/{id}", loanId).with(LIBRARIAN))
+                .andExpect(status().isOk());
     }
 
     // --- borrowing rules ---
@@ -204,9 +228,7 @@ class LoanFlowIntegrationTest {
 
     @Test
     void memberWithOverdueLoanIsBlocked() throws Exception {
-        Book overdueBook = books.save(new Book("Overdue Book", "Author", "9780000000009", 1));
-        Instant borrowedAt = Instant.now().minus(Duration.ofDays(30));
-        loans.save(new Loan(rishabh, overdueBook, borrowedAt, borrowedAt.plus(Duration.ofDays(14))));
+        overdueLoanOf(rishabh);
 
         expectRejected(borrow(RISHABH, rishabh, singleCopy), "HAS_OVERDUE_LOAN");
     }
@@ -254,5 +276,52 @@ class LoanFlowIntegrationTest {
         updateMember(rishabh, "Rishabh Karnwal", "shivamgarg@gmail.com")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Email shivamgarg@gmail.com is already used by another member."));
+    }
+
+    // --- librarian loan views ---
+
+    private Loan overdueLoanOf(Member member) {
+        Book book = books.save(new Book("Overdue Book", "Author", "9780000000009", 1));
+        Instant borrowedAt = Instant.now().minus(Duration.ofDays(30));
+        return loans.save(new Loan(member, book, borrowedAt, borrowedAt.plus(Duration.ofDays(14))));
+    }
+
+    @Test
+    void librarianSeesOnlyOverdueLoansWhenFiltering() throws Exception {
+        Loan overdue = overdueLoanOf(shivam);
+        borrow(RISHABH, rishabh, singleCopy).andExpect(status().isCreated());
+
+        mvc.perform(get("/api/loans").param("status", "OVERDUE").with(LIBRARIAN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(overdue.getId()))
+                .andExpect(jsonPath("$.content[0].overdue").value(true));
+
+        mvc.perform(get("/api/loans").param("status", "ACTIVE").with(LIBRARIAN))
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
+    void membersCannotListAllLoans() throws Exception {
+        mvc.perform(get("/api/loans").with(RISHABH))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unknownLoanStatusIsA400() throws Exception {
+        mvc.perform(get("/api/loans").param("status", "LOST").with(LIBRARIAN))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- observability ---
+
+    @Test
+    void healthIsPublicButMetricsNeedALibrarian() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/actuator/metrics").with(RISHABH))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/metrics/library.loans.overdue").with(LIBRARIAN))
+                .andExpect(status().isOk());
     }
 }
